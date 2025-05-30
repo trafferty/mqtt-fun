@@ -8,21 +8,30 @@ mutex = Lock()
 doWork = True
 msg_lst = []
 
+log_file = "mqtt_client.log"
+
+def doLog(log_msg):
+    global log_file
+    msg = f"{time.strftime('[%Y_%d_%m (%a) - %H:%M:%S]', time.localtime())}: {log_msg}"
+    print (msg)
+    with open(log_file, "a") as file:
+        file.write(f"[{msg}\n")
+
 # setting callbacks for different events to see if it works, print the message etc.
 def on_connect(client, userdata, flags, rc, properties=None):
-    print("[on_connect] CONNACK received with code %s." % rc)
+    doLog("[on_connect] CONNACK received with code %s." % rc)
     if len(flags) > 0:
-        print(f"[on_connect] Flags: {flags}")
+        doLog(f"[on_connect] Flags: {flags}")
     if properties != None:
-        print(f"[on_connect] Props: {properties}")
+        doLog(f"[on_connect] Props: {properties}")
         
 # print which topic was subscribed to
 def on_subscribe(client, userdata, mid, granted_qos, properties=None):
-    print("[on_subscribe] Subscribed: " + str(mid) + " " + str(granted_qos))
+    doLog("[on_subscribe] Subscribed: " + str(mid) + " " + str(granted_qos))
 
 # print message, useful for checking if it was successful
 def on_message(client, userdata, msg):
-    print("[on_message] " + msg.topic + " " + str(msg.qos) + " " + str(msg.payload.decode('UTF-8')))
+    doLog("[on_message] " + msg.topic + " " + str(msg.qos) + " " + str(msg.payload.decode('UTF-8')))
     with mutex:
         msg_lst.append(msg)
 
@@ -52,11 +61,11 @@ def main():
     #t = Thread(target = worker)
     #t.start()
     
-    #print(f"Received the following message: {client.user_data_get()}")
+    #doLog(f"Received the following message: {client.user_data_get()}")
 
     # loop_forever for simplicity, here you need to stop the loop manually
     # you can also use loop_start and loop_stop
-    print("Starting client loop")
+    doLog("Starting client loop")
     client.loop_start()
     
     sleep_time_s = 10
@@ -66,25 +75,25 @@ def main():
             if not doWork: break
             time.sleep((1 / 2))
 
-    print("Stopping client loop and disconnecting")
+    doLog("Stopping client loop and disconnecting")
     client.loop_stop()
     client.disconnect()
 
 def signal_handler(sig, frame):
     global doWork
     doWork = False    
-    print("Caught ctrl-c...")
+    doLog("Caught ctrl-c...")
 
 def worker():
     global doWork
-    print("Starting worker...")
+    doLog("Starting worker...")
     sleep_time_s = 10
     while doWork:
         handle_msgs()
         for _ in range(sleep_time_s * 2):
             if not doWork: break
             time.sleep((1 / 2))
-    print("Exiting worker...")
+    doLog("Exiting worker...")
 
 def handle_msgs():
     global msg_lst, mutex

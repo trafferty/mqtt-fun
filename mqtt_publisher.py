@@ -9,6 +9,15 @@ from datetime import datetime
 import paho.mqtt.client as mqtt
 import ssl
 
+log_file = "mqtt_pub.log"
+
+def doLog(log_msg):
+    global log_file
+    msg = f"{time.strftime('[%Y_%d_%m (%a) - %H:%M:%S]', time.localtime())}: {log_msg}"
+    print (msg)
+    with open(log_file, "a") as file:
+        file.write(f"[{msg}\n")
+
 def get_ip_address(ifname):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     return socket.inet_ntoa(fcntl.ioctl(
@@ -19,34 +28,35 @@ def get_ip_address(ifname):
 
 # setting callbacks for different events to see if it works, print the message etc.
 def on_connect(client, userdata, flags, rc, properties=None):
-    print("CONNACK received with code %s." % rc)
+    doLog("[on_connect] CONNACK received with code %s." % rc)
 
 # with this callback you can see if your publish was successful
 def on_publish(client, userdata, mid, reason_code, properties):
-    print("[on_publish] mid: " + str(mid))
+    doLog("[on_publish] mid: " + str(mid))
 
 # print which topic was subscribed to
 def on_subscribe(client, userdata, mid, granted_qos, properties=None):
-    print("Subscribed: " + str(mid) + " " + str(granted_qos))
+    doLog("[on_subscribe] Subscribed: " + str(mid) + " " + str(granted_qos))
 
 # print message, useful for checking if it was successful
 def on_message(client, userdata, msg):
-    print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload).decode('UTF-8'))
+    doLog(msg.topic + " " + str(msg.qos) + " " + str(msg.payload).decode('UTF-8'))
 
 def main():
     if len(sys.argv) <= 2:
-        print("Error: Must pass name of interface, ie eno1, and topic, ie pickle-ip/ipcs")
+        doLog("Error: Must pass name of interface, ie eno1, and topic, ie pickle-ip/ipcs")
         exit()
     ifname = sys.argv[1]
     topic = sys.argv[2]
+    client_id = sys.argv[3]
 
     ip_address = get_ip_address(sys.argv[1])
-    print(f"IP address of {ifname} is {ip_address}")
+    doLog(f"IP address of {ifname} is {ip_address}")
     
     # using MQTT version 5 here, for 3.1.1: MQTTv311, 3.1: MQTTv31
     # userdata is user defined data of any type, updated by user_data_set()
     # client_id is the given name of the client
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="cnt-ipcs-provider", userdata=None, protocol=mqtt.MQTTv5)
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id, userdata=None, protocol=mqtt.MQTTv5)
     client.on_connect = on_connect
 
     # enable TLS for secure connection
@@ -68,9 +78,7 @@ def main():
 
     client.publish(topic, payload=json.dumps(message), qos=1)
 
-    fname = "mqtt_pub.log"
-    with open(fname, "a") as file:
-        file.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Send msg: {message}\n")
+    doLog(f"Published msg: {message}")
 
     # loop_forever for simplicity, here you need to stop the loop manually
     # you can also use loop_start and loop_stop
