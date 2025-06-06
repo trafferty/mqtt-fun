@@ -25,6 +25,9 @@ def on_connect(client, userdata, flags, rc, properties=None):
     if properties != None:
         doLog(f"[on_connect] Props: {properties}")
         
+    # subscribe to all topics of encyclopedia by using the wildcard "#"
+    client.subscribe("pickle-ip/#", qos=1)
+        
 # print which topic was subscribed to
 def on_subscribe(client, userdata, mid, granted_qos, properties=None):
     doLog("[on_subscribe] Subscribed: " + str(mid) + " " + str(granted_qos))
@@ -54,9 +57,6 @@ def main():
     client.username_pw_set("scoober", "honeyPOT357")
     # connect to HiveMQ Cloud on port 8883 (default for MQTT)
     client.connect("1c1f5db0298f41a98023dbac15ffd0ed.s1.eu.hivemq.cloud", 8883, clean_start=False)
-
-    # # subscribe to all topics of encyclopedia by using the wildcard "#"
-    client.subscribe("pickle-ip/#", qos=1)
 
     #t = Thread(target = worker)
     #t.start()
