@@ -19,20 +19,33 @@ def doLog(log_msg):
 
 # setting callbacks for different events to see if it works, print the message etc.
 def on_connect(client, userdata, flags, rc, properties=None):
-    doLog("[on_connect] CONNACK received with code %s." % rc)
+    doLog(f"[on_connect] CONNACK received with code {rc}")
     if len(flags) > 0:
-        doLog(f"[on_connect] Flags: {flags}")
+        doLog(f"[on_connect] flags: {flags}")
     if properties != None:
-        doLog(f"[on_connect] Props: {properties}")
+        doLog(f"[on_connect] props: {properties}")
         
-    # subscribe to all topics of encyclopedia by using the wildcard "#"
-    client.subscribe("pickle-ip/#", qos=1)
+    # subscribe to some topics
+    topic_list = ["ip-pub-cnt/#", "ip-pub-pickle/#"]
+    for topic in topic_list:
+        doLog(f"[on_connect] subscribing to topic: {topic}")
+        client.subscribe(topic, qos=1)
         
 # print which topic was subscribed to
 def on_subscribe(client, userdata, mid, granted_qos, properties=None):
-    doLog("[on_subscribe] Subscribed: " + str(mid) + " " + str(granted_qos))
+    doLog(f"[on_subscribe] Subscribed: {str(mid)} {str(granted_qos)}")
+    if properties != None:
+        doLog(f"[on_subscribe] props: {properties}")
+    if userdata != None:
+        doLog(f"[on_subscribe] userdate: {userdata}")
 
-# print message, useful for checking if it was successful
+def on_unsubscribe(client, userdata, mid, reason_code_list, properties=None):
+    doLog(f"[on_unsubscribe] Subscribed: {str(mid)}")
+    if properties != None:
+        doLog(f"[on_unsubscribe] props: {properties}")
+    for reason_code in reason_code_list:
+        doLog(f"[on_unsubscribe] reason_code: {reason_code}")
+
 def on_message(client, userdata, msg):
     doLog("[on_message] " + msg.topic + " " + str(msg.qos) + " " + str(msg.payload.decode('UTF-8')))
     with mutex:
@@ -49,6 +62,7 @@ def main():
     client.on_connect = on_connect
     # setting callbacks, use separate functions like above for better visibility
     client.on_subscribe = on_subscribe
+    client.on_unsubscribe = on_unsubscribe
     client.on_message = on_message
 
     # enable TLS for secure connection
