@@ -1,0 +1,22 @@
+{
+    "name": "MqttClient",
+    "log_file_path": "ip_address_client.log",
+
+    "client_id": "client_id",
+    "client_username": "client_username",
+    "client_pw": "client_pw",
+
+    "hivemq_url": "hivemq_url", 
+    "hivemq_port": 8883,
+    "clean_start": false,
+
+    "topic_list": ["ip-pub-cnt/#", "ip-pub-pickle/#"],
+    "subscribe_qos": 1,
+
+    "sleep_time_s": 10,
+    "html_file_name": "index.html",
+    "msg_truncate_value": 20
+}
+
+
+    
