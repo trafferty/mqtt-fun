@@ -62,8 +62,7 @@ def main():
     logger.info(f"  Looking for IP adress for this interface: {ifname}")
     logger.info(f"  Publishing to this topic list: {pub_topic_list}\n")
 
-    #ip_address = get_ip_address(ifname)
-    ip_address = "1.2.3.4"
+    ip_address = get_ip_address(ifname)
     logger.info(f"IP address of {ifname} is {ip_address}")
     
     logger.info("Creating MQTT Publisher")
