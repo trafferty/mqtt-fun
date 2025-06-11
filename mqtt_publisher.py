@@ -1,89 +1,78 @@
-import socket
-import fcntl
-import struct
-import sys
-import time
-import json
-from datetime import datetime
-
 import paho.mqtt.client as mqtt
 import ssl
 
-log_file = "mqtt_pub.log"
+class MqttPublisher(object):
+    """
+    MQTT publisher used to connect and publish to certain topics
+    """
 
-def doLog(log_msg):
-    global log_file
-    msg = f"{time.strftime('[%Y_%d_%m (%a) - %H:%M:%S]', time.localtime())}: {log_msg}"
-    print (msg)
-    with open(log_file, "a") as file:
-        file.write(f"[{msg}\n")
+    def __init__(self, config, logger):                
+        self.logger = logger
+        self.config = config
+        self.client = None
+        
+        self.name = config["name"] if len(config["name"]) > 0 else "MqttPublisher"
 
-def get_ip_address(ifname):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return socket.inet_ntoa(fcntl.ioctl(
-        s.fileno(),
-        0x8915,  # SIOCGIFADDR
-        struct.pack('256s', ifname[:15].encode('utf-8'))
-    )[20:24])
+    # setting callbacks for different events to see if it works, print the message etc.
+    def on_connect(self, client, userdata, flags, rc, properties=None):
+        self.logger.info(f"[on_connect] CONNACK received with code {rc}")
+        if len(flags) > 0:
+            self.logger.info(f"[on_connect] flags: {flags}")
+        if properties != None:
+            self.logger.info(f"[on_connect] props: {properties}")
+                    
+    def on_publish(self, client, userdata, mid, reason_code, properties=None):
+        self.logger.info(f"[on_publish] Mid: {str(mid)}")
+        if properties != None:
+            self.logger.info(f"[on_publish] props: {properties}")
+        self.logger.info(f"[on_publish] reason_code: {reason_code}")
 
-# setting callbacks for different events to see if it works, print the message etc.
-def on_connect(client, userdata, flags, rc, properties=None):
-    doLog("[on_connect] CONNACK received with code %s." % rc)
+    def on_subscribe(self, client, userdata, mid, granted_qos, properties=None):
+        self.logger.info(f"[on_subscribe] Subscribed: {str(mid)}, QOS: {str(granted_qos)}")
+        if properties != None:
+            self.logger.info(f"[on_subscribe] props: {properties}")
+        if userdata != None:
+            self.logger.info(f"[on_subscribe] userdate: {userdata}")
 
-# with this callback you can see if your publish was successful
-def on_publish(client, userdata, mid, reason_code, properties):
-    doLog("[on_publish] mid: " + str(mid))
+    def on_unsubscribe(self, client, userdata, mid, reason_code_list, properties=None):
+        self.logger.info(f"[on_unsubscribe] Subscribed: {str(mid)}")
+        if properties != None:
+            self.logger.info(f"[on_unsubscribe] props: {properties}")
+        for reason_code in reason_code_list:
+            self.logger.info(f"[on_unsubscribe] reason_code: {reason_code}")
 
-# print which topic was subscribed to
-def on_subscribe(client, userdata, mid, granted_qos, properties=None):
-    doLog("[on_subscribe] Subscribed: " + str(mid) + " " + str(granted_qos))
+    def on_message(self, client, userdata, msg):
+        self.logger.info("[on_message] " + msg.topic + " " + str(msg.qos) + " " + str(msg.payload.decode('UTF-8')))
 
-# print message, useful for checking if it was successful
-def on_message(client, userdata, msg):
-    doLog(msg.topic + " " + str(msg.qos) + " " + str(msg.payload).decode('UTF-8'))
+    def setup(self):
+        self.mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, 
+                                  client_id=self.config["client_id"], 
+                                  userdata=None, protocol=mqtt.MQTTv5)
+        self.mqttc.enable_logger(self.logger)
 
-def main():
-    if len(sys.argv) <= 2:
-        doLog("Error: Must pass name of interface, ie eno1, and topic, ie pickle-ip/ipcs")
-        exit()
-    ifname = sys.argv[1]
-    topic = sys.argv[2]
-    client_id = sys.argv[3]
+        self.mqttc.on_connect     = self.on_connect
+        self.mqttc.on_publish     = self.on_publish
+        self.mqttc.on_subscribe   = self.on_subscribe
+        self.mqttc.on_unsubscribe = self.on_unsubscribe
+        self.mqttc.on_message     = self.on_message
 
-    ip_address = get_ip_address(sys.argv[1])
-    doLog(f"IP address of {ifname} is {ip_address}")
+        # enable TLS for secure connection
+        self.mqttc.tls_set(tls_version=ssl.PROTOCOL_TLS)
+        # set username and password
+        self.mqttc.username_pw_set(self.config["client_username"], self.config["client_pw"])
     
-    # using MQTT version 5 here, for 3.1.1: MQTTv311, 3.1: MQTTv31
-    # userdata is user defined data of any type, updated by user_data_set()
-    # client_id is the given name of the client
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id, userdata=None, protocol=mqtt.MQTTv5)
-    client.on_connect = on_connect
+    def connect(self):
+        self.mqttc.connect(self.config["hivemq_url"], self.config["hivemq_port"])
 
-    # enable TLS for secure connection
-    client.tls_set(tls_version=ssl.PROTOCOL_TLS)
-    # set username and password
-    client.username_pw_set("scoober", "honeyPOT357")
-    # connect to HiveMQ Cloud on port 8883 (default for MQTT)
-    client.connect("1c1f5db0298f41a98023dbac15ffd0ed.s1.eu.hivemq.cloud", 8883)
-
-    # setting callbacks, use separate functions like above for better visibility
-    client.on_subscribe = on_subscribe
-    client.on_message = on_message
-    client.on_publish = on_publish
-
-    client.loop_start()
-    
-    message = {"timestamp": f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-               "ip_address":ip_address}
-
-    client.publish(topic, payload=json.dumps(message), qos=1)
-
-    doLog(f"Published msg: {message}")
-
-    # loop_forever for simplicity, here you need to stop the loop manually
-    # you can also use loop_start and loop_stop
-    client.loop_stop()
-    client.disconnect()
-
-if __name__ == '__main__':
-    main()
+    def start(self):
+        self.mqttc.loop_start()
+                
+    def stop(self):
+        self.mqttc.loop_stop()
+        
+    def publish(self, topic, message):
+        qos = self.config["publish_qos"]
+        self.mqttc.publish(topic, message, qos=qos)
+                
+    def disconnect(self):
+        self.mqttc.disconnect()

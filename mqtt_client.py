@@ -33,7 +33,7 @@ class MqttClient(object):
             
     # print which topic was subscribed to
     def on_subscribe(self, client, userdata, mid, granted_qos, properties=None):
-        self.logger.info(f"[on_subscribe] Subscribed: {str(mid)} {str(granted_qos)}")
+        self.logger.info(f"[on_subscribe] Subscribed: {str(mid)}, QOS: {str(granted_qos)}")
         if properties != None:
             self.logger.info(f"[on_subscribe] props: {properties}")
         if userdata != None:

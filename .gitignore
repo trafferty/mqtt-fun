@@ -1,3 +1,5 @@
-mqtt_client.log
-mqtt_pub.log
-config.json
+*.log
+ip_client_config.json
+client_config.json
+pub_config.json
+ip_pub_config.json

@@ -1,0 +1,19 @@
+{
+    "name": "MqttPublisher",
+    "log_file_path": "ip_address_pub.log",
+
+    "client_id": "client_id",
+    "client_username": "client_username",
+    "client_pw": "client_pw",
+
+    "hivemq_url": "hivemq_url", 
+    "hivemq_port": 8883,
+
+    "topic_list": ["ip-pub-cnt/thr-dev"],
+    "publish_qos": 1,
+
+    "ifname": "eno1"
+}
+
+
+    

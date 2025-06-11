@@ -14,13 +14,15 @@ def create_html(ip_lst):
     html_start = '''
         <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Pickle System Ip Addresses</title><style>
         body {margin: 0;padding: 0;height: 100vh;display: flex;align-items: center;justify-content: center;background: linear-gradient(to right, #f0f2f5, #e0e7ff);font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;}
-        select {width: 80ch;font-size: 1rem;padding: 10px;border-radius: 8px;border: 1px solid #ccc;box-shadow: 0 2px 5px rgba(0,0,0,0.1);background-color: white;}</style></head><body><select size="15">'''
+        select {width: 80ch;font-size: 1rem;padding: 10px;border-radius: 8px;border: 1px solid #ccc;box-shadow: 0 2px 5px rgba(0,0,0,0.1);background-color: white;}</style></head><body>'''
 
-    html_mid = ""
+    entry_cnt = len(ip_lst) if len(ip_lst) >= 1 and len(ip_lst) <= 30 else 10 
+    html_mid = f'<select size="{entry_cnt}">'
     for ip in ip_lst:
         html_mid += f"<option>{ip}</option>"
+    html_mid += "</select>"
 
-    html_end = "</select></body></html>\n"
+    html_end = "</body></html>\n"
     
     return html_start + html_mid + html_end
 
@@ -74,7 +76,7 @@ if __name__ == "__main__":
     fileHandler.setFormatter(logFormatter)
     logger.addHandler(fileHandler)
     
-    logger.info("*** Starting IP Address msg Utility. ***")
+    logger.info("*** Starting IP Address Message Utility. ***")
     logger.info(f"  Listening for IP address MQTT msgs for these topics: {config['topic_list']}")
     logger.info(f"  Writing HTML file with addresses: {html_file_name}\n")
     
