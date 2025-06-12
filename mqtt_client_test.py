@@ -32,9 +32,9 @@ def main():
     # enable TLS for secure connection
     client.tls_set(tls_version=ssl.PROTOCOL_TLS)
     # set username and password
-    client.username_pw_set("scoober", "honeyPOT357")
+    client.username_pw_set("user", "pw")
     # connect to HiveMQ Cloud on port 8883 (default for MQTT)
-    client.connect("1c1f5db0298f41a98023dbac15ffd0ed.s1.eu.hivemq.cloud", 8883, clean_start=False)
+    client.connect("url", 8883, clean_start=False)
 
     # # subscribe to all topics of encyclopedia by using the wildcard "#"
     client.subscribe("pickle-ip/#", qos=1)
